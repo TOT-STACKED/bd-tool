@@ -30,7 +30,8 @@ function buildText(trigger, company) {
   }
 
   if (trigger.source_url) text += `*Source:* ${trigger.source_url}\n`;
-  text += `\n_Log outreach → http://localhost:5173/companies/${company.id}?tab=pipeline_`;
+  const appUrl = process.env.APP_URL || 'https://bd-tool-production.up.railway.app';
+  text += `\n_Log outreach → ${appUrl}/companies/${company.id}?tab=pipeline_`;
 
   return text;
 }

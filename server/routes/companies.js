@@ -4,17 +4,6 @@ const { getDb } = require('../db/client');
 
 const router = express.Router();
 
-// DELETE /api/companies/all — wipe all data
-router.delete('/all', (req, res) => {
-  const db = getDb();
-  db.exec('DELETE FROM outreach');
-  db.exec('DELETE FROM triggers');
-  db.exec('DELETE FROM contacts');
-  db.exec('DELETE FROM companies');
-  console.log('[companies] all data wiped');
-  res.json({ ok: true });
-});
-
 router.get('/', (req, res) => {
   const db = getDb();
   const { sector, fte_min, fte_max, trigger_type, search, sort = 'trigger_count' } = req.query;

@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "bd-tool-client",
+      "runtimeExecutable": "/bin/bash",
+      "runtimeArgs": ["/Users/chrisfletcher/Claude code stuff/bd-tool/start-client.sh"],
+      "port": 5173
+    }
+  ]
+}

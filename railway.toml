@@ -1,0 +1,14 @@
+[build]
+builder = "nixpacks"
+buildCommand = "npm install && npm run build"
+
+[deploy]
+startCommand = "npm start"
+healthcheckPath = "/api/health"
+healthcheckTimeout = 30
+
+[[volumes]]
+mountPath = "/data"
+
+[deploy.envVars]
+NODE_ENV = "production"

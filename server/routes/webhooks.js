@@ -283,4 +283,15 @@ router.post('/clay', async (req, res) => {
   });
 });
 
+// ─── POST /api/webhooks/reset (one-time data wipe) ───────────────────────────
+router.post('/reset', (req, res) => {
+  const db = getDb();
+  db.exec('DELETE FROM outreach');
+  db.exec('DELETE FROM triggers');
+  db.exec('DELETE FROM contacts');
+  db.exec('DELETE FROM companies');
+  console.log('[webhooks/reset] all tables cleared');
+  res.json({ ok: true, message: 'All data cleared' });
+});
+
 module.exports = router;

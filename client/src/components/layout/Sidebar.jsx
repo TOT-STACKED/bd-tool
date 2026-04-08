@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Building2, Kanban, Settings, Target } from 'lucide-react'
+import { LayoutDashboard, Building2, Kanban, Settings, Target, X } from 'lucide-react'
 import { cn } from '../../lib/utils'
 
 const links = [
@@ -9,13 +9,18 @@ const links = [
   { to: '/settings', icon: Settings, label: 'Settings' },
 ]
 
-export default function Sidebar() {
+export default function Sidebar({ onClose }) {
   return (
-    <aside className="w-56 bg-gray-900 text-white flex flex-col shrink-0">
+    <aside className="w-56 h-screen bg-gray-900 text-white flex flex-col shrink-0">
       {/* Logo */}
       <div className="h-16 flex items-center px-5 border-b border-gray-700">
         <Target className="w-5 h-5 text-sky-400 mr-2" />
-        <span className="font-semibold text-sm tracking-tight">BD Intelligence</span>
+        <span className="font-semibold text-sm tracking-tight flex-1">BD Intelligence</span>
+        {onClose && (
+          <button onClick={onClose} className="text-gray-400 hover:text-white p-1 -mr-1">
+            <X className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
       {/* Nav */}

@@ -40,7 +40,7 @@ export default function Dashboard() {
   }))
 
   return (
-    <div className="p-8">
+    <div className="p-4 sm:p-6 lg:p-8">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">BD Dashboard</h1>
         <p className="text-sm text-gray-500 mt-1">Hospo SaaS & Payments scale-ups · US HQ · 50–500 FTE</p>

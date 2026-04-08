@@ -24,8 +24,8 @@ export default function CompanyDetail({ company, contacts, triggers, outreach })
   return (
     <div>
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-8 py-6">
-        <div className="flex items-start justify-between gap-4">
+      <div className="bg-white border-b border-gray-200 px-4 sm:px-8 py-4 sm:py-6">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
           <div>
             <div className="flex items-center gap-2 mb-1">
               <h1 className="text-2xl font-bold text-gray-900">{company.name}</h1>
@@ -42,7 +42,7 @@ export default function CompanyDetail({ company, contacts, triggers, outreach })
               {company.last_funding_date && <span>Raised {formatDate(company.last_funding_date)}</span>}
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {company.website && (
               <a href={company.website} target="_blank" rel="noreferrer"
                 className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-sky-600 bg-gray-100 hover:bg-gray-200 px-3 py-1.5 rounded-md transition-colors">
@@ -67,7 +67,7 @@ export default function CompanyDetail({ company, contacts, triggers, outreach })
       </div>
 
       {/* Tabs */}
-      <div className="bg-white border-b border-gray-200 px-8">
+      <div className="bg-white border-b border-gray-200 px-4 sm:px-8">
         <nav className="flex gap-0 -mb-px">
           {TABS.map(tab => (
             <button
@@ -86,7 +86,7 @@ export default function CompanyDetail({ company, contacts, triggers, outreach })
       </div>
 
       {/* Tab Content */}
-      <div className="px-8 py-6">
+      <div className="px-4 sm:px-8 py-4 sm:py-6">
         {activeTab === 'Overview' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="bg-white border border-gray-200 rounded-lg p-5">

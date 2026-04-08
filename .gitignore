@@ -1,5 +1,7 @@
 node_modules/
 client/dist/
 server/bd-tool.sqlite
+server/bd-tool.sqlite-shm
+server/bd-tool.sqlite-wal
 .env
 *.log

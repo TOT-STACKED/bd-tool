@@ -34,6 +34,7 @@ app.use('/api/triggers', require('./routes/triggers'));
 app.use('/api/outreach', require('./routes/outreach'));
 app.use('/api/scraper', require('./routes/scraper'));
 app.use('/api/webhooks', require('./routes/webhooks'));
+app.use('/api/admin', require('./routes/admin'));
 console.log('[server] webhook routes loaded: POST /api/webhooks/clay');
 app.get('/api/health', (req, res) => res.json({ ok: true, ts: new Date().toISOString() }));
 

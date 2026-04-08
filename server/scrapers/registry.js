@@ -1,6 +1,16 @@
 const mockScraper = require('./mock.scraper');
+const techcrunchScraper = require('./techcrunch.scraper');
+const crunchbaseScraper = require('./crunchbase.scraper');
+const linkedinJobsScraper = require('./linkedin-jobs.scraper');
+const googleNewsScraper = require('./google-news.scraper');
 
-const scrapers = [mockScraper];
+const scrapers = [
+  mockScraper,
+  techcrunchScraper,
+  crunchbaseScraper,
+  linkedinJobsScraper,
+  googleNewsScraper,
+];
 
 const jobResults = new Map();
 

@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Building2, Kanban, Settings, Target, Menu } from 'lucide-react'
+import { LayoutDashboard, Building2, Kanban, Settings, Target, Menu, Users } from 'lucide-react'
 import { cn } from '../../lib/utils'
 import Sidebar from './Sidebar'
 
 const mobileLinks = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/companies', icon: Building2, label: 'Companies' },
+  { to: '/candidates', icon: Users, label: 'Candidates' },
   { to: '/pipeline', icon: Kanban, label: 'Pipeline' },
   { to: '/settings', icon: Settings, label: 'Settings' },
 ]

@@ -1,0 +1,20 @@
+CREATE TABLE IF NOT EXISTS candidates (
+  id TEXT PRIMARY KEY,
+  full_name TEXT NOT NULL,
+  first_name TEXT,
+  last_name TEXT,
+  title TEXT,
+  current_company TEXT,
+  seniority TEXT CHECK(seniority IN ('c-suite', 'vp', 'director', 'head', 'manager', 'other')),
+  function TEXT CHECK(function IN ('sales', 'cs', 'people', 'ops', 'finance', 'marketing', 'product', 'other')),
+  email TEXT,
+  phone TEXT,
+  linkedin_url TEXT,
+  location TEXT,
+  status TEXT DEFAULT 'available' CHECK(status IN ('available', 'contacted', 'in_process', 'placed', 'not_interested')),
+  notes TEXT,
+  source TEXT DEFAULT 'import',
+  placed_at_company_id TEXT REFERENCES companies(id),
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL
+);

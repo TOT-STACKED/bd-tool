@@ -119,4 +119,105 @@ router.post('/csv', (req, res) => {
   res.json({ ok: true, created, updated, skipped, total: rows.length });
 });
 
+// Infer seniority from job title
+function inferSeniority(title) {
+  if (!title) return 'other';
+  const t = title.toLowerCase();
+  if (t.includes('chief') || t.includes('cro') || t.includes('cso') || t.includes('ceo') || t.includes('coo')) return 'c-suite';
+  if (t.includes('vp') || t.includes('vice president')) return 'vp';
+  if (t.includes('director')) return 'director';
+  if (t.includes('head of')) return 'head';
+  if (t.includes('manager')) return 'manager';
+  return 'other';
+}
+
+// Infer function from job title
+function inferFunction(title) {
+  if (!title) return 'other';
+  const t = title.toLowerCase();
+  if (t.includes('sale') || t.includes('revenue') || t.includes('business dev') || t.includes('bd')) return 'sales';
+  if (t.includes('customer success') || t.includes('cs') || t.includes('account management')) return 'cs';
+  if (t.includes('people') || t.includes('hr') || t.includes('talent') || t.includes('recruit')) return 'people';
+  if (t.includes('market')) return 'marketing';
+  if (t.includes('product')) return 'product';
+  if (t.includes('finance') || t.includes('fintech')) return 'finance';
+  if (t.includes('ops') || t.includes('operations')) return 'ops';
+  return 'sales'; // default for this ICP
+}
+
+// POST /api/import/candidates — import candidates CSV from Clay
+router.post('/candidates', (req, res) => {
+  const { csv } = req.body;
+  if (!csv) return res.status(400).json({ error: 'csv field required' });
+
+  const rows = parseCSV(csv);
+  if (!rows.length) return res.status(400).json({ error: 'No rows found in CSV' });
+
+  const db = getDb();
+  const now = new Date().toISOString();
+
+  const findByLinkedin = db.prepare('SELECT id FROM candidates WHERE linkedin_url = ? LIMIT 1');
+  const findByName = db.prepare('SELECT id FROM candidates WHERE LOWER(full_name) = LOWER(?) LIMIT 1');
+  const insert = db.prepare(`
+    INSERT INTO candidates (id, full_name, first_name, last_name, title, current_company,
+      seniority, function, email, phone, linkedin_url, location, status, notes, source,
+      placed_at_company_id, created_at, updated_at)
+    VALUES (@id, @full_name, @first_name, @last_name, @title, @current_company,
+      @seniority, @function, @email, @phone, @linkedin_url, @location, @status, @notes, @source,
+      @placed_at_company_id, @created_at, @updated_at)
+  `);
+  const update = db.prepare(`
+    UPDATE candidates SET title=@title, current_company=@current_company,
+      seniority=@seniority, function=@function, email=@email, linkedin_url=@linkedin_url,
+      location=@location, updated_at=@updated_at
+    WHERE id=@id
+  `);
+
+  let created = 0, updated = 0, skipped = 0;
+
+  const importAll = db.transaction(() => {
+    for (const row of rows) {
+      // Accept Clay column names: Full Name, First Name, Last Name, Job Title, Company Name, etc.
+      const fullName = row['full_name'] || row['full name'] || row['name'] ||
+        [row['first_name'] || row['first name'], row['last_name'] || row['last name']].filter(Boolean).join(' ');
+      if (!fullName.trim()) { skipped++; continue; }
+
+      const title = row['title'] || row['job_title'] || row['job title'] || row['jobtitle'] || '';
+      const company = row['company_name'] || row['company name'] || row['current_company'] || row['employer'] || '';
+      const linkedin = row['linkedin_url'] || row['linkedin url'] || row['linkedin'] || '';
+      const email = row['email'] || row['email_address'] || row['work email'] || '';
+      const phone = row['phone'] || row['mobile'] || row['phone_number'] || '';
+      const location = row['location'] || row['city'] || row['country'] || '';
+      const seniority = row['seniority'] || inferSeniority(title);
+      const fn = row['function'] || inferFunction(title);
+
+      const existing = (linkedin && findByLinkedin.get(linkedin)) || findByName.get(fullName.trim());
+
+      if (existing) {
+        update.run({ id: existing.id, title, current_company: company, seniority, function: fn, email, linkedin_url: linkedin, location, updated_at: now });
+        updated++;
+      } else {
+        const nameParts = fullName.trim().split(' ');
+        insert.run({
+          id: uuidv4(),
+          full_name: fullName.trim(),
+          first_name: row['first_name'] || row['first name'] || nameParts[0] || '',
+          last_name: row['last_name'] || row['last name'] || nameParts.slice(1).join(' ') || '',
+          title, current_company: company,
+          seniority, function: fn,
+          email, phone, linkedin_url: linkedin, location,
+          status: 'available', notes: null, source: 'clay',
+          placed_at_company_id: null,
+          created_at: now, updated_at: now,
+        });
+        created++;
+      }
+    }
+  });
+
+  importAll();
+  console.log(`[import] candidates CSV: ${created} created, ${updated} updated, ${skipped} skipped`);
+  res.json({ ok: true, created, updated, skipped, total: rows.length });
+});
+
 module.exports = router;

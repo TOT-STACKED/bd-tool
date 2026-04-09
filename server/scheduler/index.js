@@ -31,15 +31,7 @@ function startScheduler() {
 
   console.log('[scheduler] real scrapers scheduled (funding, crunchbase, jobs, google-news)');
 
-  // Run all real scrapers once on startup (after 30s to let DB settle)
-  setTimeout(async () => {
-    console.log('[scheduler] running startup scrape...');
-    const jobId = `startup_${Date.now()}`;
-    await registry.run('all', jobId).catch(err =>
-      console.error('[scheduler] startup scrape error:', err)
-    );
-    console.log('[scheduler] startup scrape complete');
-  }, 30000);
+  // Startup scrape disabled — run manually from Settings when needed
 }
 
 function stopScheduler() {

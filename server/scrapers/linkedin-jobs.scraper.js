@@ -27,7 +27,7 @@ function detectSeniority(title) {
 
 function jobNewsUrl(companyName) {
   const q = encodeURIComponent(
-    `"${companyName}" hiring (VP OR Director OR "Head of" OR CRO OR "Chief Revenue" OR "Vice President")`
+    `"${companyName}" ("VP of Sales" OR "Chief Revenue Officer" OR "Director of Sales" OR "Head of Sales" OR "VP of Customer Success") appointed OR hired OR joins`
   );
   return `https://news.google.com/rss/search?q=${q}&hl=en-US&gl=US&ceid=US:en`;
 }
@@ -61,6 +61,10 @@ const linkedinJobsScraper = {
         const title = item.title || '';
         const link = item.link || '';
         if (!link || !SENIOR_RE.test(title)) continue;
+
+        // Company name must appear in the title
+        const nameRe = new RegExp(`\\b${company.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+        if (!nameRe.test(title)) continue;
 
         // Skip news older than 30 days
         if (item.pubDate) {

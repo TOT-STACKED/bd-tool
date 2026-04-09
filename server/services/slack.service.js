@@ -37,6 +37,13 @@ function buildText(trigger, company) {
 }
 
 async function sendAlert(trigger, company) {
+  // Only send Slack alerts for Clay webhook triggers, not scraper-found signals
+  // Scrapers are too noisy until signal quality is validated
+  if (process.env.SLACK_SCRAPER_ALERTS !== 'true') {
+    console.log(`[slack] suppressed scraper alert for ${company.name} — set SLACK_SCRAPER_ALERTS=true to enable`);
+    return { skipped: true };
+  }
+
   const text = buildText(trigger, company);
 
   // Primary: Slack Web API with bot token

@@ -22,8 +22,9 @@ function extractAmount(text) {
 }
 
 function fundingNewsUrl(companyName) {
+  // Quote the name AND require funding-specific terms to reduce false positives
   const q = encodeURIComponent(
-    `"${companyName}" (raises OR raised OR funding OR "Series A" OR "Series B" OR "Series C" OR investment OR "growth round")`
+    `"${companyName}" ("raises" OR "raised" OR "Series A" OR "Series B" OR "Series C" OR "seed round" OR "growth round") startup`
   );
   return `https://news.google.com/rss/search?q=${q}&hl=en-US&gl=US&ceid=US:en`;
 }
@@ -56,15 +57,19 @@ const techcrunchScraper = {
         const link = item.link || '';
         if (!link) continue;
 
-        // Must mention an amount or explicit round to avoid false positives
+          // Must mention BOTH an amount AND explicit round — strict to avoid false positives
         const hasAmount = AMOUNT_RE.test(text);
         const hasRound = ROUND_RE.test(text);
-        if (!hasAmount && !hasRound) continue;
+        if (!hasAmount || !hasRound) continue;
 
-        // Skip news older than 90 days
+        // Company name must appear in the title (not just the snippet)
+        const nameRe = new RegExp(`\\b${company.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+        if (!nameRe.test(item.title || '')) continue;
+
+        // Skip news older than 60 days
         if (item.pubDate) {
           const age = Date.now() - new Date(item.pubDate).getTime();
-          if (age > 90 * 24 * 60 * 60 * 1000) continue;
+          if (age > 60 * 24 * 60 * 60 * 1000) continue;
         }
 
         // Deduplicate

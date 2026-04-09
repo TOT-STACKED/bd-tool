@@ -71,6 +71,10 @@ const googleNewsScraper = {
       for (const item of feed.items) {
         const text = `${item.title || ''} ${item.contentSnippet || ''}`;
 
+        // Company name must appear in the title specifically
+        const nameRe = new RegExp(`\\b${company.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+        if (!nameRe.test(item.title || '')) continue;
+
         // Must mention a hire/appointment
         if (!HIRE_RE.test(text)) continue;
 

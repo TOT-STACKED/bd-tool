@@ -283,4 +283,97 @@ router.post('/clay', async (req, res) => {
   });
 });
 
+// ─── POST /api/webhooks/candidates ───────────────────────────────────────────
+// Accepts Clay rows from the Senior Sales Leaders table
+router.post('/candidates', async (req, res) => {
+  const db = getDb();
+
+  let rows = [];
+  if (Array.isArray(req.body)) rows = req.body;
+  else if (Array.isArray(req.body?.data)) rows = req.body.data;
+  else if (req.body && typeof req.body === 'object') rows = [req.body];
+
+  if (!rows.length) return res.status(400).json({ error: 'No rows in payload' });
+
+  const now = new Date().toISOString();
+
+  const findByLinkedin = db.prepare('SELECT id FROM candidates WHERE linkedin_url = ? LIMIT 1');
+  const findByName    = db.prepare('SELECT id FROM candidates WHERE LOWER(full_name) = LOWER(?) LIMIT 1');
+  const insert = db.prepare(`
+    INSERT INTO candidates (id, full_name, first_name, last_name, title, current_company,
+      seniority, function, email, phone, linkedin_url, location, status, notes, source,
+      placed_at_company_id, created_at, updated_at)
+    VALUES (@id, @full_name, @first_name, @last_name, @title, @current_company,
+      @seniority, @function, @email, @phone, @linkedin_url, @location, @status, @notes, @source,
+      @placed_at_company_id, @created_at, @updated_at)
+  `);
+  const update = db.prepare(`
+    UPDATE candidates SET title=@title, current_company=@current_company,
+      seniority=@seniority, function=@function, email=@email,
+      linkedin_url=@linkedin_url, location=@location, updated_at=@updated_at
+    WHERE id=@id
+  `);
+
+  function inferFn(title) {
+    if (!title) return 'sales';
+    const t = title.toLowerCase();
+    if (/sale|revenue|business dev|\bbd\b/.test(t)) return 'sales';
+    if (/customer success|account manag/.test(t)) return 'cs';
+    if (/people|talent|hr|recruit/.test(t)) return 'people';
+    if (/market/.test(t)) return 'marketing';
+    if (/product/.test(t)) return 'product';
+    if (/financ/.test(t)) return 'finance';
+    if (/ops|operat/.test(t)) return 'ops';
+    return 'sales';
+  }
+
+  const results = [];
+
+  const importAll = db.transaction(() => {
+    for (const row of rows) {
+      // Resolve fields — handle Clay's exact column names
+      const fullName = field(row, 'full_name', 'full name', 'name') ||
+        [field(row, 'first_name', 'first name'), field(row, 'last_name', 'last name')].filter(Boolean).join(' ');
+
+      if (!fullName?.trim()) { results.push({ skipped: true, reason: 'No name' }); continue; }
+
+      const title      = field(row, 'job_title', 'title', 'job title', 'jobtitle', 'position') || '';
+      const company    = field(row, 'company_name', 'company name', 'company', 'employer', 'current_company') || '';
+      const linkedin   = field(row, 'linkedin_url', 'linkedin url', 'linkedin', 'profile_url') || '';
+      const email      = field(row, 'email', 'email_address', 'work email', 'work_email') || '';
+      const phone      = field(row, 'phone', 'mobile', 'phone_number') || '';
+      const location   = field(row, 'location', 'city', 'country', 'region') || '';
+      const seniority  = field(row, 'seniority') || inferSeniority(title);
+      const fn         = field(row, 'function') || inferFn(title);
+      const firstName  = field(row, 'first_name', 'first name') || fullName.trim().split(' ')[0];
+      const lastName   = field(row, 'last_name', 'last name') || fullName.trim().split(' ').slice(1).join(' ');
+
+      const existing = (linkedin && findByLinkedin.get(linkedin)) || findByName.get(fullName.trim());
+
+      if (existing) {
+        update.run({ id: existing.id, title, current_company: company, seniority, function: fn, email, linkedin_url: linkedin || null, location, updated_at: now });
+        results.push({ ok: true, action: 'updated', name: fullName.trim() });
+      } else {
+        insert.run({
+          id: uuidv4(), full_name: fullName.trim(), first_name: firstName, last_name: lastName,
+          title, current_company: company, seniority, function: fn,
+          email, phone, linkedin_url: linkedin || null, location,
+          status: 'available', notes: null, source: 'clay',
+          placed_at_company_id: null, created_at: now, updated_at: now,
+        });
+        results.push({ ok: true, action: 'created', name: fullName.trim() });
+      }
+    }
+  });
+
+  importAll();
+
+  const created = results.filter(r => r.action === 'created').length;
+  const updated = results.filter(r => r.action === 'updated').length;
+  const skipped = results.filter(r => r.skipped).length;
+
+  console.log(`[webhooks/candidates] ${created} created, ${updated} updated, ${skipped} skipped`);
+  res.json({ received: rows.length, created, updated, skipped, results });
+});
+
 module.exports = router;

@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useQuery, useMutation } from '@tanstack/react-query'
-import { CheckCircle, AlertCircle, PlayCircle, RefreshCw } from 'lucide-react'
+import { CheckCircle, AlertCircle, PlayCircle, RefreshCw, Upload, FileText } from 'lucide-react'
 import { api } from '../lib/api'
 import { Card, CardHeader, CardBody } from '../components/ui/Card'
 import Button from '../components/ui/Button'
@@ -9,6 +9,34 @@ import { timeAgo } from '../lib/utils'
 export default function Settings() {
   const [runningJob, setRunningJob] = useState(null)
   const [lastJobResult, setLastJobResult] = useState(null)
+  const [csvImporting, setCsvImporting] = useState(false)
+  const [csvResult, setCsvResult] = useState(null)
+  const [csvError, setCsvError] = useState(null)
+  const [dragOver, setDragOver] = useState(false)
+  const fileInputRef = useRef(null)
+
+  async function handleCSV(file) {
+    if (!file) return
+    if (!file.name.endsWith('.csv')) { setCsvError('Please upload a .csv file'); return }
+    setCsvImporting(true)
+    setCsvResult(null)
+    setCsvError(null)
+    try {
+      const text = await file.text()
+      const res = await fetch('/api/import/csv', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ csv: text }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Import failed')
+      setCsvResult(data)
+    } catch (err) {
+      setCsvError(err.message)
+    } finally {
+      setCsvImporting(false)
+    }
+  }
 
   const { data: scraperData, refetch: refetchScrapers } = useQuery({
     queryKey: ['scraper-status'],
@@ -127,6 +155,76 @@ export default function Settings() {
             >
               {runningJob ? 'Running…' : 'Run all scrapers'}
             </Button>
+          </CardBody>
+        </Card>
+
+        {/* CSV Import */}
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <h2 className="font-semibold text-gray-900">Import Companies (CSV)</h2>
+          </CardHeader>
+          <CardBody>
+            <p className="text-sm text-gray-500 mb-4">
+              Upload a CSV with columns: <code className="bg-gray-100 px-1 py-0.5 rounded text-xs">company_name, sector, hq_country, website, linkedin_url, fte_min, fte_max, funding_stage, amount_usd, funding_date</code>
+            </p>
+
+            {/* Drop zone */}
+            <div
+              className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${dragOver ? 'border-indigo-400 bg-indigo-50' : 'border-gray-200 hover:border-gray-300'}`}
+              onClick={() => fileInputRef.current?.click()}
+              onDragOver={e => { e.preventDefault(); setDragOver(true) }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={e => { e.preventDefault(); setDragOver(false); handleCSV(e.dataTransfer.files[0]) }}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".csv"
+                className="hidden"
+                onChange={e => handleCSV(e.target.files[0])}
+              />
+              {csvImporting ? (
+                <div className="flex flex-col items-center gap-2 text-gray-500">
+                  <RefreshCw className="w-8 h-8 animate-spin text-indigo-500" />
+                  <p className="text-sm">Importing…</p>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-2 text-gray-400">
+                  <Upload className="w-8 h-8" />
+                  <p className="text-sm font-medium text-gray-600">Drop CSV here or click to upload</p>
+                  <p className="text-xs">Existing companies will be updated, new ones created</p>
+                </div>
+              )}
+            </div>
+
+            {/* Result */}
+            {csvResult && (
+              <div className="mt-4 flex items-start gap-2 p-3 bg-green-50 rounded-lg border border-green-200">
+                <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 shrink-0" />
+                <div className="text-sm text-green-800">
+                  <p className="font-medium">Import complete</p>
+                  <p>{csvResult.created} created · {csvResult.updated} updated · {csvResult.skipped} skipped</p>
+                </div>
+              </div>
+            )}
+            {csvError && (
+              <div className="mt-4 flex items-start gap-2 p-3 bg-red-50 rounded-lg border border-red-200">
+                <AlertCircle className="w-4 h-4 text-red-600 mt-0.5 shrink-0" />
+                <p className="text-sm text-red-800">{csvError}</p>
+              </div>
+            )}
+
+            {/* Download template */}
+            <div className="mt-4 flex items-center gap-2">
+              <FileText className="w-4 h-4 text-gray-400" />
+              <a
+                href="data:text/csv;charset=utf-8,company_name,sector,hq_country,website,linkedin_url,fte_min,fte_max,funding_stage,amount_usd,funding_date%0AExample Co,hospo-saas,US,https://example.com,https://linkedin.com/company/example,100,200,series-b,5000000,2024-01-01"
+                download="bd_import_template.csv"
+                className="text-sm text-indigo-600 hover:text-indigo-800"
+              >
+                Download template CSV
+              </a>
+            </div>
           </CardBody>
         </Card>
 

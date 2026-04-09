@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Upload, RefreshCw, Search, ExternalLink, CheckCircle, AlertCircle, User } from 'lucide-react'
 import { Card, CardBody } from '../components/ui/Card'
@@ -10,8 +10,15 @@ const STATUS_LABEL = { available: 'Available', contacted: 'Contacted', in_proces
 
 export default function Candidates() {
   const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [seniority, setSeniority] = useState('')
   const [status, setStatus] = useState('')
+
+  // Debounce search so typing doesn't re-render and lose focus
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedSearch(search), 300)
+    return () => clearTimeout(t)
+  }, [search])
   const [importing, setImporting] = useState(false)
   const [importResult, setImportResult] = useState(null)
   const [importError, setImportError] = useState(null)
@@ -20,10 +27,10 @@ export default function Candidates() {
   const qc = useQueryClient()
 
   const { data, isLoading } = useQuery({
-    queryKey: ['candidates', search, seniority, status],
+    queryKey: ['candidates', debouncedSearch, seniority, status],
     queryFn: async () => {
       const params = new URLSearchParams()
-      if (search) params.set('search', search)
+      if (debouncedSearch) params.set('search', debouncedSearch)
       if (seniority) params.set('seniority', seniority)
       if (status) params.set('status', status)
       const res = await fetch(`/api/candidates?${params}`)
